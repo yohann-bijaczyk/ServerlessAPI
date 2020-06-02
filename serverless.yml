@@ -1,0 +1,66 @@
+service: sls-api
+custom:
+  dynamodb:
+    stages: dev
+    start:
+      port: 8000
+      migrate: true # please create the tables
+      inMemory: true
+      onStart: true
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: eu-west-3
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+        - dynamodb:Quey
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "*"
+plugins:
+  - serverless-offline
+  - serverless-dynamodb-local
+functions:
+  listStore:
+    handler: src/store/list.handler
+    memory: 128
+    events:
+      - http:
+          method: GET 
+          path: /store
+  createStore:
+    handler: src/store/create.handler
+    memory: 128
+    events:
+      - http:
+          method: POST 
+          path: /store
+  getStore:
+    handler: src/store/findone.handler
+    memory: 128
+    events:
+      - http:
+          method: GET 
+          path: /store/{id}
+          request:
+            parameters:
+              url: true
+resources:
+  Resources:
+    StoreDynamoDBTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        TableName: "sls-api-store"
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
